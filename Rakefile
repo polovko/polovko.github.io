@@ -108,7 +108,7 @@ end
 desc "Generate jekyll site"
 task :generate do
   puts "## Generating Site with Jekyll"
-  system "jekyll"
+  system "jekyll build"
 end
 
 ##############
@@ -193,6 +193,16 @@ end
 def get_stdin(message)
   print message
   STDIN.gets.chomp
+end
+
+def blog_url(user, project)
+  url = if File.exists?('CNAME')
+    "http://#{IO.read('CNAME').strip}"
+  else
+    "http://#{user}.github.io"
+  end
+  url += "/#{project}" unless project == ''
+  url
 end
 
 def ask(message, valid_options)
