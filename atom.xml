@@ -2,10 +2,10 @@
 <feed xmlns="http://www.w3.org/2005/Atom">
 
  <title><![CDATA[polovko.me]]></title>
- <link href="http://polovko.me/atom.xml" rel="self"/>
- <link href="http://polovko.me/"/>
- <updated>2014-04-24T01:31:06+04:00</updated>
- <id>http://polovko.me</id>
+ <link href="http://www.polovko.me/atom.xml" rel="self"/>
+ <link href="http://www.polovko.me/"/>
+ <updated>2014-04-24T02:55:04+04:00</updated>
+ <id>http://www.polovko.me</id>
  <author>
    <name><![CDATA[Sergey Polovko]]></name>
    
@@ -16,9 +16,9 @@
  
  <entry>
    <title type="html"><![CDATA[noNamePost(4)]]></title>
-   <link href="http://polovko.me/blog/2012/10/06/nonamepost4/"/>
+   <link href="http://www.polovko.me/blog/2012/10/06/nonamepost4/"/>
    <updated>2012-10-06T03:48:00+04:00</updated>
-   <id>http://polovko.me/blog/2012/10/06/nonamepost4</id>
+   <id>http://www.polovko.me/blog/2012/10/06/nonamepost4</id>
    <content type="html">&lt;h2&gt;Новости&lt;/h2&gt;
 
 &lt;ul&gt;
@@ -61,16 +61,16 @@
 <li>Хорошая <a href="http://www.atlassian.com/time-wasting-at-work-infographic">инфографика</a>, показывающая на что уходит большая часть рабочего времени. <span class='label'>#productivity</span>  
       
       
-        <div><a href="http://polovko.me/blog/2012/10/06/nonamepost4/">Читать дальше &rarr;</a></div>
+        <div><a href="http://www.polovko.me/blog/2012/10/06/nonamepost4/">Читать дальше &rarr;</a></div>
       
     ]]></content>
  </entry>
  
  <entry>
    <title type="html"><![CDATA[Введение в JIT компиляцию]]></title>
-   <link href="http://polovko.me/blog/2012/10/04/vvedenie-v-jit-kompilyaciyu/"/>
+   <link href="http://www.polovko.me/blog/2012/10/04/vvedenie-v-jit-kompilyaciyu/"/>
    <updated>2012-10-04T05:40:00+04:00</updated>
-   <id>http://polovko.me/blog/2012/10/04/vvedenie-v-jit-kompilyaciyu</id>
+   <id>http://www.polovko.me/blog/2012/10/04/vvedenie-v-jit-kompilyaciyu</id>
    <content type="html">&lt;p&gt;Виртуальная машина Java HotSpot VM (доставшаяся Oracle после приобретения компании Sun Microsystems)  составляет основу как для виртуальной машины Java (JVM), так и для OpenJDK (проект с открытым исходным кодом). Как и все виртуальные машины Java HotSpot VM обеспечивает необходимую среду для выполнения байт-кода. На практике она отвечает за три основные функции:&lt;/p&gt;
 
 &lt;ul&gt;
@@ -340,16 +340,16 @@
 <p>Эта статья фокусируется на интерпретации байт-кода, а именно на оптимизациях, проводимых в виртуальной машине. 
       
       
-        <div><a href="http://polovko.me/blog/2012/10/04/vvedenie-v-jit-kompilyaciyu/">Читать дальше &rarr;</a></div>
+        <div><a href="http://www.polovko.me/blog/2012/10/04/vvedenie-v-jit-kompilyaciyu/">Читать дальше &rarr;</a></div>
       
     ]]></content>
  </entry>
  
  <entry>
    <title type="html"><![CDATA[noNamePost(3)]]></title>
-   <link href="http://polovko.me/blog/2012/10/03/nonamepost3/"/>
+   <link href="http://www.polovko.me/blog/2012/10/03/nonamepost3/"/>
    <updated>2012-10-03T03:01:00+04:00</updated>
-   <id>http://polovko.me/blog/2012/10/03/nonamepost3</id>
+   <id>http://www.polovko.me/blog/2012/10/03/nonamepost3</id>
    <content type="html">&lt;h2&gt;Новости&lt;/h2&gt;
 
 &lt;ul&gt;
@@ -400,16 +400,16 @@
 <li>Со-основатель SpringSource <a href="http://gigaom.com/cloud/typesafe-home-of-scala-brings-springsource-co-founder-rod-johnson-aboard/">Rod Johnson перешел в Typesafe</a>. <span class='label'>#typesafe</span>  
       
       
-        <div><a href="http://polovko.me/blog/2012/10/03/nonamepost3/">Читать дальше &rarr;</a></div>
+        <div><a href="http://www.polovko.me/blog/2012/10/03/nonamepost3/">Читать дальше &rarr;</a></div>
       
     ]]></content>
  </entry>
  
  <entry>
    <title type="html"><![CDATA[noNamePost(2)]]></title>
-   <link href="http://polovko.me/blog/2012/10/01/nonamepost2/"/>
+   <link href="http://www.polovko.me/blog/2012/10/01/nonamepost2/"/>
    <updated>2012-10-01T01:43:00+04:00</updated>
-   <id>http://polovko.me/blog/2012/10/01/nonamepost2</id>
+   <id>http://www.polovko.me/blog/2012/10/01/nonamepost2</id>
    <content type="html">&lt;h2&gt;Новости&lt;/h2&gt;
 
 &lt;ul&gt;
@@ -464,16 +464,16 @@
 <li>Проект <a href="http://www.cloudera.com/blog/2012/09/apache-hadoop-wins-dukes-choice-award-is-a-java-ecosystem-mvp/">Apache Hadoop выиграл</a> награду Duke's Choice Award тем самым получив статус наиболее значимого продукта в экосистеме Java (MVP, Most Valuable Player). <a href="http://java.com/en/dukeschoice/">Проекты</a>, получившие награду в прошлом году. <span class='label'>#hadoop</span>  
       
       
-        <div><a href="http://polovko.me/blog/2012/10/01/nonamepost2/">Читать дальше &rarr;</a></div>
+        <div><a href="http://www.polovko.me/blog/2012/10/01/nonamepost2/">Читать дальше &rarr;</a></div>
       
     ]]></content>
  </entry>
  
  <entry>
    <title type="html"><![CDATA[noNamePost(1)]]></title>
-   <link href="http://polovko.me/blog/2012/09/28/nonamepost1/"/>
+   <link href="http://www.polovko.me/blog/2012/09/28/nonamepost1/"/>
    <updated>2012-09-28T14:35:00+04:00</updated>
-   <id>http://polovko.me/blog/2012/09/28/nonamepost1</id>
+   <id>http://www.polovko.me/blog/2012/09/28/nonamepost1</id>
    <content type="html">&lt;h2&gt;Новости&lt;/h2&gt;
 
 &lt;ul&gt;
@@ -504,16 +504,16 @@
 <li>Очередной выпуск <a href="https://blogs.oracle.com/javaspotlight/entry/java_spotlight_episode_101_javaone">Java Spotlight</a>. Интервью с докладчиками на предстоящей в Сан-Франциско конференции <a href="http://www.oracle.com/javaone/index.html">Java One</a>. <span class='label'>#spotlight</span>  
       
       
-        <div><a href="http://polovko.me/blog/2012/09/28/nonamepost1/">Читать дальше &rarr;</a></div>
+        <div><a href="http://www.polovko.me/blog/2012/09/28/nonamepost1/">Читать дальше &rarr;</a></div>
       
     ]]></content>
  </entry>
  
  <entry>
    <title type="html"><![CDATA[О размерах в Java]]></title>
-   <link href="http://polovko.me/blog/2012/09/26/o-razmerah-v-java/"/>
+   <link href="http://www.polovko.me/blog/2012/09/26/o-razmerah-v-java/"/>
    <updated>2012-09-26T12:17:00+04:00</updated>
-   <id>http://polovko.me/blog/2012/09/26/o-razmerah-v-java</id>
+   <id>http://www.polovko.me/blog/2012/09/26/o-razmerah-v-java</id>
    <content type="html">&lt;p&gt;Задался недавно вопросом: &quot;Как правильно оценить размер выделяемой памяти под объекты в Java?&quot;. На хабре есть несколько статей &lt;a href=&quot;http://habrahabr.ru/post/134102/&quot;&gt;[1]&lt;/a&gt;, &lt;a href=&quot;http://habrahabr.ru/post/134910/&quot;&gt;[2]&lt;/a&gt; посвященных этому вопросу. Но мне не совсем понравился подход, использованный авторами. Поэтому решил заглянуть внутрь OpenJDK Hotspot VM (далее по тексту Hotspot) и попытаться понять как все устроено на самом деле.&lt;/p&gt;
 
 &lt;h2&gt;Типы данных в Java&lt;/h2&gt;
@@ -725,7 +725,7 @@
 <li>Массивы. Одномерные линейные структуры, которые могут содержать все перечисленные типы (включая другие  массивы). Массивы также являются объектами, но со специфичной структурой. 
       
       
-        <div><a href="http://polovko.me/blog/2012/09/26/o-razmerah-v-java/">Читать дальше &rarr;</a></div>
+        <div><a href="http://www.polovko.me/blog/2012/09/26/o-razmerah-v-java/">Читать дальше &rarr;</a></div>
       
     ]]></content>
  </entry>
