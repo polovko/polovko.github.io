@@ -1,0 +1,25 @@
+<div class="post">
+  {% if index %}
+    <h1 class="post-title">
+      <a href="{{ root_url }}{{ post.url }}">
+        {{ post.title }}
+      </a>
+    </h1>
+    <span class="post-date">{{ post.date | date_to_string }}</span>
+  {% else %}
+    <h1 class="post-title">{{ page.title }}</h1>
+    <span class="post-date">{{ page.date | date_to_string }}</span>
+  {% endif %}
+
+  {% if index %}
+    <div class="entry-content">{{ content | excerpt }}</div>
+    {% capture excerpted %}{{ content | has_excerpt }}{% endcapture %}
+    {% if excerpted == 'true' %}
+      <div class="read-more">
+        <a href="{{ root_url }}{{ post.url }}">{{ site.readmore_link }}</a>
+      </div>
+    {% endif %}
+  {% else %}
+    <div class="post-content">{{ content }}</div>
+  {% endif %}
+</div>

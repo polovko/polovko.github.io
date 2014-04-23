@@ -1,0 +1,19 @@
+# Ignore docs files
+_gh_pages
+_site
+_deploy
+
+# Numerous always-ignore extensions
+*.diff
+*.err
+*.orig
+*.log
+*.rej
+*.swo
+*.swp
+*.zip
+*.vi
+*~
+
+.DS_Store
+Thumbs.db
