@@ -1,0 +1,428 @@
+<!DOCTYPE html>
+<html xmlns="http://www.w3.org/1999/xhtml" xml:lang="en" lang="en-us">
+
+  <head>
+  <link href="http://gmpg.org/xfn/11" rel="profile">
+  <meta http-equiv="content-type" content="text/html; charset=utf-8">
+
+  <!-- Enable responsiveness on mobile devices-->
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1">
+  <meta name="keywords" content="java, jit, jvm, hotspot, оптимизация в java">
+
+  <title>
+    
+      Введение в JIT компиляцию &middot; polovko.me
+    
+  </title>
+
+  <!-- CSS -->
+  <link rel="stylesheet" href="/public/css/poole.css">
+  <link rel="stylesheet" href="/public/css/syntax.css">
+  <link rel="stylesheet" href="/public/css/lanyon.css">
+  <link rel="stylesheet" href="http://fonts.googleapis.com/css?family=PT+Serif:400,400italic,700|PT+Sans:400">
+
+  <!-- Icons -->
+  <link rel="apple-touch-icon-precomposed" sizes="144x144" href="/public/apple-touch-icon-144-precomposed.png">
+  <link rel="shortcut icon" href="/public/favicon.png">
+
+  <!-- RSS -->
+  <link rel="alternate" type="application/rss+xml" title="RSS" href="/atom.xml">
+</head>
+
+
+  <body>
+
+    <!-- Target for toggling the sidebar `.sidebar-checkbox` is for regular
+     styles, `#sidebar-checkbox` for behavior. -->
+<input type="checkbox" class="sidebar-checkbox" id="sidebar-checkbox">
+
+<!-- Toggleable sidebar -->
+<div class="sidebar" id="sidebar">
+  <div class="sidebar-item">
+    <p>"И тут Остапа понесло..." &copy; Ильф и Петров
+</p>
+  </div>
+
+  <nav class="sidebar-nav">
+    <a class="sidebar-nav-item"
+       href="/">Главная</a>
+
+    
+
+    
+    
+      
+        
+      
+    
+      
+    
+      
+        
+      
+    
+      
+        
+      
+    
+
+    <a class="sidebar-nav-item" href="https://github.com/jamel">GitHub</a>
+    <a class="sidebar-nav-item" href="https://twitter.com/the_jamel">Twitter</a>
+    <a class="sidebar-nav-item" href="/atom.xml">RSS</a>
+  </nav>
+</div>
+
+
+    <!-- Wrap is the content to shift when toggling the sidebar. We wrap the
+         content to avoid any CSS collisions with our real content. -->
+    <div class="wrap">
+      <div class="masthead">
+        <div class="container">
+          <h3 class="masthead-title">
+            <a href="/" title="Home">polovko.me</a>
+            <small>Записки на полях</small>
+          </h3>
+        </div>
+      </div>
+
+      <div class="container content">
+        <div class="post">
+  
+    <h1 class="post-title">Введение в JIT компиляцию</h1>
+    <span class="post-date">04 Oct 2012</span>
+  
+
+  
+    <div class="post-content"><p>Виртуальная машина Java HotSpot VM (доставшаяся Oracle после приобретения компании Sun Microsystems)  составляет основу как для виртуальной машины Java (JVM), так и для OpenJDK (проект с открытым исходным кодом). Как и все виртуальные машины Java HotSpot VM обеспечивает необходимую среду для выполнения байт-кода. На практике она отвечает за три основные функции:</p>
+
+<ul>
+<li>интерпретация байт-кода</li>
+<li>поиск, загрузка и проверка типов (так называемая загрузка классов)</li>
+<li>управление памятью</li>
+</ul>
+
+
+<p>Эта статья фокусируется на интерпретации байт-кода, а именно на оптимизациях, проводимых в виртуальной машине. <!-- more --></p>
+
+<h2>JIT-компиляция</h2>
+
+<p>Java HotSpot VM помимо непосредственной интерпретации байт-кода может выполнять компиляцию байт-кода (отдельных методов целиком) в машинные инструкции для ускорения процесса выполнения.</p>
+
+<p>Если виртуальной машине передать параметр <code>-XX:+PrintCompilation</code>, то <a href="https://gist.github.com/1165804#file_notes.md">можно увидеть</a> как были скомпилированы методы. Эта компиляция происходит во время исполнения, после того как метод уже был выполнен несколько раз. Ожидание фактического использования метода дает возможность Java HotSpot VM сделать боле точное решение о том, как оптимизировать код путем компиляции.</p>
+
+<p>Если вам интересно какой выигрыш дает JIT, вы можете отключить ее используя параметр <code>-Djava.compiler=none</code> и затем посмотреть как изменились результаты ваших тестов.</p>
+
+<p>Java HotSpot VM способна работать в двух независимых режимах: <strong>server</strong> или <strong>client</strong>. Конкретный режим выбирается путем указания одноименного параметра <code>-server</code> или <code>-client</code> в момент запуска JVM (необходимо чтобы это был первый параметр в командной строке). В зависимости от конкретной ситуации предпочтительно использовать тот или иной режим. В этой статье будет использоваться режим <strong>server</strong>.</p>
+
+<p>Основное различие между этими двумя режимами заключается в том, что в режиме <strong>server</strong> выполняются более агрессивные оптимизации, основанные на предположениях, которые не всегда могут быть выполнены. Для оптимизации всегда проверяется верно ли соответствующее предположение об оптимизации. Если по каким-то причинам предположение не действительно, Java HotSpot VM откатывает оптимизацию и возвращает метод в режим интерпретации байт-кода. Такое поведение означает, что Java HotSpot VM никогда не сделает неверную оптимизацию.</p>
+
+<p>По-умолчанию в режиме <strong>server</strong> Java HotSpot VM выполнит метод 10 000 раз в режиме интерпретации прежде чем скомпилирует его. Вы можете регулировать это значение выставив параметр <strong>CompileThreshold</strong>. Например, использование <code>-XX:CompileThreshold=5000</code> приведет к тому, что Java HotSpot VM выполнит метод 5 000 раз прежде чем скомпилирует его.</p>
+
+<p>Может показаться заманчивым уменьшить порог компиляции до очень маленького значения. Однако, это может привести к падению производительности, так как будет затрачено время на компиляцию методов не выполняющихся так часто чтобы покрыть накладные расходы на их компиляцию.</p>
+
+<p>Наибольшей эффективности Java HotSpot VM достигает тогда, когда она может собрать достаточно статистики, чтобы принять разумное решение о том, что скомпилировать. Если вы уменьшите порог компиляции, Java HotSpot VM может потратить огромное количество времени компилируя методы, которые выполняются не так часто. Некоторые оптимизации выполняются только тогда, когда достаточно статистики было собрано. Так что код может быть не таким оптимальным каким бы он мог быть.</p>
+
+<p>С другой стороны многие разработчики хотят достичь лучшей производительности для важных методов (путем их компиляции) как можно раньше. Одно из стандартных решений данной проблемы - прогрев (например, подача тестового трафика на систему) после старта процесса, который позволит проанализировать выполнение достаточно для запуска компиляции.</p>
+
+<p>В Java HotSpot VM есть множество параметров, которые увеличивают количество выводимой о JIT информации. Наиболее часто используется <strong>PrintCompilation</strong> (который мы уже видели), но есть несколько других.</p>
+
+<p>Мы будем использовать <strong>PrintCompilation</strong> для наблюдения за эффектами компиляции методов в Java HotSpot VM во время исполнения. Но для начала нужно сказать пару слов о методе <strong>System.nanoTime()</strong> для замера времени.</p>
+
+<h2>Таймеры</h2>
+
+<p>В Java мы можем получить доступ к двум таймерам: <strong>currentTimeMillis()</strong> и <strong>nanoTime()</strong>. Первый достаточно близко соответствует времени, которое мы наблюдаем в физическом мире. Его разрешения достаточно для большинства целей, но не для приложений с низкой задержкой.</p>
+
+<p>Наносекундный таймер является альтернативой с более высоким разрешением. Этот таймер измеряет время в невероятно коротких интервалах. Одна наносекунда - это время, за которое свет пройдет 20 сантиметров в волоконно-оптическом кабеле. В отличии от этого, требуется 27,5 мс для того, чтобы свет прошел расстояние от Лондона до Нью-Йорка по волоконно-оптическому кабелю.</p>
+
+<p>В связи с очень высоким разрешением наносекундного таймера требуется с осторожностью обращаться с ним.</p>
+
+<p>Например, <strong>currentTimeMillis()</strong> как правило синхронизировано между машинами достаточно хорошо и может использоваться для замера сетевых задержек. Но <strong>nanoTime()</strong> не обладает таким свойством.</p>
+
+<h2>Встраивание методов</h2>
+
+<p>Одна из ключевых оптимизаций JIT-компиляции (но не javac) - это встраивание методов: копирование тела метода в метод, который вызвал его и устранение вызова. Эта функциональность очень важна, так как стоимость вызова простого метода может быть больше в сравнении с производимой им работой.</p>
+
+<p>JIT-компилятор может выполнять постепенное встраивание, то есть начать с встраивания простых методов и затем переходить на большие и большие блоки кода пока другие оптимизации не станут возможными.</p>
+
+<p>Рассмотрим следующий код, сравнивающий производительность различных способов доступа к полям:</p>
+
+<ul>
+<li>прямой доступ к открытому полю класса (<strong>DFACaller</strong>),</li>
+<li>через гетер и сетер (<strong>GetSetCaller</strong>).</li>
+</ul>
+
+
+<div class="highlight"><pre><code class="java"><span class="kn">import</span> <span class="nn">java.util.concurrent.Callable</span><span class="o">;</span>
+<span class="kn">import</span> <span class="nn">java.lang.management.ManagementFactory</span><span class="o">;</span>
+
+<span class="kd">public</span> <span class="kd">class</span> <span class="nc">Main</span> <span class="o">{</span>
+    <span class="kd">private</span> <span class="kd">static</span> <span class="kt">double</span> <span class="nf">timeTestRun</span><span class="o">(</span><span class="n">String</span> <span class="n">desc</span><span class="o">,</span> <span class="kt">int</span> <span class="n">runs</span><span class="o">,</span>
+            <span class="n">Callable</span><span class="o">&lt;</span><span class="n">Double</span><span class="o">&gt;</span> <span class="n">callable</span><span class="o">)</span> <span class="kd">throws</span> <span class="n">Exception</span> <span class="o">{</span>
+        <span class="kt">long</span> <span class="n">start</span> <span class="o">=</span> <span class="n">System</span><span class="o">.</span><span class="na">nanoTime</span><span class="o">();</span>
+        <span class="n">callable</span><span class="o">.</span><span class="na">call</span><span class="o">();</span>
+        <span class="kt">long</span> <span class="n">time</span> <span class="o">=</span> <span class="n">System</span><span class="o">.</span><span class="na">nanoTime</span><span class="o">()</span> <span class="o">-</span> <span class="n">start</span><span class="o">;</span>
+        <span class="k">return</span> <span class="o">(</span><span class="kt">double</span><span class="o">)</span> <span class="n">time</span> <span class="o">/</span> <span class="n">runs</span><span class="o">;</span>
+    <span class="o">}</span>
+
+    <span class="c1">// время с момента запуска</span>
+    <span class="kd">private</span> <span class="kd">static</span> <span class="kt">long</span> <span class="nf">uptime</span><span class="o">()</span> <span class="o">{</span>
+        <span class="k">return</span> <span class="n">ManagementFactory</span><span class="o">.</span><span class="na">getRuntimeMXBean</span><span class="o">().</span><span class="na">getUptime</span><span class="o">()</span>
+            <span class="o">+</span> <span class="mi">15</span><span class="o">;</span> <span class="c1">// выдуманный фактор</span>
+    <span class="o">}</span>
+
+    <span class="kd">public</span> <span class="kd">static</span> <span class="kt">void</span> <span class="nf">main</span><span class="o">(</span><span class="n">String</span><span class="o">...</span> <span class="n">args</span><span class="o">)</span> <span class="kd">throws</span> <span class="n">Exception</span> <span class="o">{</span>
+        <span class="kt">int</span> <span class="n">iterations</span> <span class="o">=</span> <span class="mi">0</span><span class="o">;</span>
+        
+        <span class="k">for</span> <span class="o">(</span><span class="kt">int</span> <span class="n">i</span> <span class="o">:</span> <span class="k">new</span> <span class="kt">int</span><span class="o">[]{</span> <span class="mi">100</span><span class="o">,</span> <span class="mi">1000</span><span class="o">,</span> <span class="mi">5000</span><span class="o">,</span> <span class="mi">9000</span><span class="o">,</span> <span class="mi">10000</span><span class="o">,</span>
+                                <span class="mi">11000</span><span class="o">,</span> <span class="mi">13000</span><span class="o">,</span> <span class="mi">20000</span><span class="o">,</span> <span class="mi">100000</span><span class="o">}</span> <span class="o">)</span> <span class="o">{</span>
+            <span class="kd">final</span> <span class="kt">int</span> <span class="n">runs</span> <span class="o">=</span> <span class="n">i</span> <span class="o">-</span> <span class="n">iterations</span><span class="o">;</span>
+            <span class="n">iterations</span> <span class="o">+=</span> <span class="n">runs</span><span class="o">;</span>
+
+            <span class="c1">// ПРИМЕЧАНИЕ: сумма значений возвращается как double для</span>
+            <span class="c1">// предотвращения агрессивной JIT-компиляции (устранения цикла)</span>
+
+            <span class="n">Callable</span><span class="o">&lt;</span><span class="n">Double</span><span class="o">&gt;</span> <span class="n">directCall</span> <span class="o">=</span> <span class="k">new</span> <span class="n">DFACaller</span><span class="o">(</span><span class="n">runs</span><span class="o">);</span>
+            <span class="n">Callable</span><span class="o">&lt;</span><span class="n">Double</span><span class="o">&gt;</span> <span class="n">viaGetSet</span> <span class="o">=</span> <span class="k">new</span> <span class="n">GetSetCaller</span><span class="o">(</span><span class="n">runs</span><span class="o">);</span>
+
+            <span class="kt">double</span> <span class="n">time1</span> <span class="o">=</span> <span class="n">timeTestRun</span><span class="o">(</span><span class="s">&quot;public fields&quot;</span><span class="o">,</span> <span class="n">runs</span><span class="o">,</span> <span class="n">directCall</span><span class="o">);</span>
+            <span class="kt">double</span> <span class="n">time2</span> <span class="o">=</span> <span class="n">timeTestRun</span><span class="o">(</span><span class="s">&quot;get/set fields&quot;</span><span class="o">,</span> <span class="n">runs</span><span class="o">,</span> <span class="n">viaGetSet</span><span class="o">);</span>
+
+            <span class="n">System</span><span class="o">.</span><span class="na">out</span><span class="o">.</span><span class="na">printf</span><span class="o">(</span><span class="s">&quot;%7d %,7d\t\tfield access=%.1f ns, get/set=%.1f ns%n&quot;</span><span class="o">,</span>
+                <span class="n">uptime</span><span class="o">(),</span> <span class="n">iterations</span><span class="o">,</span> <span class="n">time1</span><span class="o">,</span> <span class="n">time2</span><span class="o">);</span>
+
+            <span class="c1">// добавляем задержку для улучшения вывода программы</span>
+            <span class="n">Thread</span><span class="o">.</span><span class="na">sleep</span><span class="o">(</span><span class="mi">100</span><span class="o">);</span>
+        <span class="o">}</span>
+    <span class="o">}</span>
+<span class="o">}</span>
+</code></pre></div>
+
+
+
+
+<div class="highlight"><pre><code class="java"><span class="kn">import</span> <span class="nn">java.util.concurrent.Callable</span><span class="o">;</span>
+
+<span class="kd">public</span> <span class="kd">class</span> <span class="nc">DFACaller</span> <span class="kd">implements</span> <span class="n">Callable</span><span class="o">&lt;</span><span class="n">Double</span><span class="o">&gt;</span> <span class="o">{</span>
+    <span class="kd">private</span> <span class="kd">final</span> <span class="kt">int</span> <span class="n">runs</span><span class="o">;</span>
+
+    <span class="kd">public</span> <span class="nf">DFACaller</span><span class="o">(</span><span class="kt">int</span> <span class="n">runs</span><span class="o">)</span> <span class="o">{</span>
+        <span class="k">this</span><span class="o">.</span><span class="na">runs</span> <span class="o">=</span> <span class="n">runs</span><span class="o">;</span>
+    <span class="o">}</span>
+
+    <span class="nd">@Override</span>
+    <span class="kd">public</span> <span class="n">Double</span> <span class="nf">call</span><span class="o">()</span> <span class="o">{</span>
+        <span class="n">DirecFieldAccess</span> <span class="n">direct</span> <span class="o">=</span> <span class="k">new</span> <span class="n">DirecFieldAccess</span><span class="o">();</span>
+        <span class="kt">double</span> <span class="n">sum</span> <span class="o">=</span> <span class="mi">0</span><span class="o">;</span>
+        <span class="k">for</span> <span class="o">(</span><span class="kt">int</span> <span class="n">i</span> <span class="o">=</span> <span class="mi">0</span><span class="o">;</span> <span class="n">i</span> <span class="o">&lt;</span> <span class="n">runs</span><span class="o">;</span> <span class="n">i</span><span class="o">++)</span> <span class="o">{</span>
+            <span class="n">direct</span><span class="o">.</span><span class="na">one</span><span class="o">++;</span>
+            <span class="n">sum</span> <span class="o">+=</span> <span class="n">direct</span><span class="o">.</span><span class="na">one</span><span class="o">;</span>
+        <span class="o">}</span>
+        <span class="k">return</span> <span class="n">sum</span><span class="o">;</span>
+    <span class="o">}</span>
+<span class="o">}</span>
+
+<span class="kd">class</span> <span class="nc">DirecFieldAccess</span> <span class="o">{</span>
+    <span class="kt">int</span> <span class="n">one</span><span class="o">;</span>
+<span class="o">}</span>
+</code></pre></div>
+
+
+
+
+<div class="highlight"><pre><code class="java"><span class="kn">import</span> <span class="nn">java.util.concurrent.Callable</span><span class="o">;</span>
+
+<span class="kd">public</span> <span class="kd">class</span> <span class="nc">GetSetCaller</span> <span class="kd">implements</span> <span class="n">Callable</span><span class="o">&lt;</span><span class="n">Double</span><span class="o">&gt;</span> <span class="o">{</span>
+    <span class="kd">private</span> <span class="kd">final</span> <span class="kt">int</span> <span class="n">runs</span><span class="o">;</span>
+
+    <span class="kd">public</span> <span class="nf">GetSetCaller</span><span class="o">(</span><span class="kt">int</span> <span class="n">runs</span><span class="o">)</span> <span class="o">{</span>
+        <span class="k">this</span><span class="o">.</span><span class="na">runs</span> <span class="o">=</span> <span class="n">runs</span><span class="o">;</span>
+    <span class="o">}</span>
+
+    <span class="nd">@Override</span>
+    <span class="kd">public</span> <span class="n">Double</span> <span class="nf">call</span><span class="o">()</span> <span class="o">{</span>
+        <span class="n">ViaGetSet</span> <span class="n">getSet</span> <span class="o">=</span> <span class="k">new</span> <span class="n">ViaGetSet</span><span class="o">();</span>
+        <span class="kt">double</span> <span class="n">sum</span> <span class="o">=</span> <span class="mi">0</span><span class="o">;</span>
+        <span class="k">for</span> <span class="o">(</span><span class="kt">int</span> <span class="n">i</span> <span class="o">=</span> <span class="mi">0</span><span class="o">;</span> <span class="n">i</span> <span class="o">&lt;</span> <span class="n">runs</span><span class="o">;</span> <span class="n">i</span><span class="o">++)</span> <span class="o">{</span>
+            <span class="n">getSet</span><span class="o">.</span><span class="na">setOne</span><span class="o">(</span><span class="n">getSet</span><span class="o">.</span><span class="na">getOne</span><span class="o">()</span> <span class="o">+</span> <span class="mi">1</span><span class="o">);</span>
+            <span class="n">sum</span> <span class="o">+=</span> <span class="n">getSet</span><span class="o">.</span><span class="na">getOne</span><span class="o">();</span>
+        <span class="o">}</span>
+        <span class="k">return</span> <span class="n">sum</span><span class="o">;</span>
+    <span class="o">}</span>
+<span class="o">}</span>
+
+<span class="kd">class</span> <span class="nc">ViaGetSet</span> <span class="o">{</span>
+    <span class="kd">private</span> <span class="kt">int</span> <span class="n">one</span><span class="o">;</span>
+
+    <span class="kd">public</span> <span class="kt">int</span> <span class="nf">getOne</span><span class="o">()</span> <span class="o">{</span>
+        <span class="k">return</span> <span class="n">one</span><span class="o">;</span>
+    <span class="o">}</span>
+
+    <span class="kd">public</span> <span class="kt">void</span> <span class="nf">setOne</span><span class="o">(</span><span class="kt">int</span> <span class="n">one</span><span class="o">)</span> <span class="o">{</span>
+        <span class="k">this</span><span class="o">.</span><span class="na">one</span> <span class="o">=</span> <span class="n">one</span><span class="o">;</span>
+    <span class="o">}</span>
+<span class="o">}</span>
+</code></pre></div>
+
+
+<blockquote><h3>Объединение JVM</h3>
+
+<p>Инженеры Oracle работают над объединением Java HotSpot VM и Oracle JRockit в одно решение, которое будет наделено лучшими возможностями каждой виртуальной машины. Полученную виртуальную машину Oracle планирует внести в проект с открытым исходным кодом - OpenJDK. Вот ключевые моменты этого объединения:</p>
+
+<ul>
+<li>Oracle JRockit и HotSpot будут слиты в одну JVM, включающую лучшие возможности обоих.</li>
+<li>Полученная JVM будет базироваться на коде HotSpot с импортированными возможностями из Oracle JRockit.</li>
+<li>Результат будет постепенно внесен в OpenJDK.</li>
+<li>Некоторые существующие решения (такие как Mission Control в Oracle JRocket) останутся проприетарными.</li>
+<li>Oracle будет и в дальнейшем распространять бесплатные бинарные пакеты JDK и JRE, которые включают некоторые элементы закрытого кода.</li>
+<li>Процесс объединения JVM будет многолетним.</li>
+</ul>
+
+
+<p>Более подробную информацию о слиянии JVM можно прочитать в статье <a href="https://blogs.oracle.com/henrik/entry/oracles_jvm_strategy">Oracle's JVM Strategy</a> - Henrik Stahl (старший директор по управлению продуктами Java Platform Group в Oracle). Чтобы узнать больше о HotSpot, посетите страницу <a href="http://openjdk.java.net/groups/hotspot/">OpenJDK HotSpot</a>. Полный список улучшений JDK вы можете увидеть в <a href="http://openjdk.java.net/jeps/0">каталоге JEP</a>. Чтобы следить за развитием JVM можно подписаться на email-рассылку <a href="http://mail.openjdk.java.net/mailman/listinfo/hotspot-dev">hotspot-dev@openjdk.java.net</a>.</p></blockquote>
+
+<p>Гетеры и сетеры - первые кандидаты на встраивание. Это простые методы, которые будут намного "дороже" если они не встроены, так как вызов метода более дорогая операция, чем прямое обращение к полю.</p>
+
+<p>Скомпилируем эти классы и выполним тестирование:</p>
+
+<div class="highlight"><pre><code class="java"><span class="n">jamel</span><span class="nd">@mac</span><span class="o">:~</span><span class="n">$</span> <span class="n">java</span> <span class="o">-</span><span class="n">version</span>
+<span class="n">java</span> <span class="n">version</span> <span class="s">&quot;1.7.0_07&quot;</span>
+<span class="n">Java</span><span class="o">(</span><span class="n">TM</span><span class="o">)</span> <span class="n">SE</span> <span class="n">Runtime</span> <span class="n">Environment</span> <span class="o">(</span><span class="n">build</span> <span class="mf">1.7</span><span class="o">.</span><span class="mi">0</span><span class="n">_07</span><span class="o">-</span><span class="n">b10</span><span class="o">)</span>
+<span class="n">Java</span> <span class="nf">HotSpot</span><span class="o">(</span><span class="n">TM</span><span class="o">)</span> <span class="mi">64</span><span class="o">-</span><span class="n">Bit</span> <span class="n">Server</span> <span class="n">VM</span> <span class="o">(</span><span class="n">build</span> <span class="mf">23.3</span><span class="o">-</span><span class="n">b01</span><span class="o">,</span> <span class="n">mixed</span> <span class="n">mode</span><span class="o">)</span>
+<span class="n">jamel</span><span class="nd">@mac</span><span class="o">:~</span><span class="n">$</span>
+<span class="n">jamel</span><span class="nd">@mac</span><span class="o">:~</span><span class="n">$</span> <span class="n">javac</span> <span class="n">Main</span><span class="o">.</span><span class="na">java</span> <span class="n">DFACaller</span><span class="o">.</span><span class="na">java</span> <span class="n">GetSetCaller</span><span class="o">.</span><span class="na">java</span>
+<span class="n">jamel</span><span class="nd">@mac</span><span class="o">:~</span><span class="n">$</span>
+<span class="n">jamel</span><span class="nd">@mac</span><span class="o">:~</span><span class="n">$</span> <span class="n">java</span> <span class="o">-</span><span class="n">cp</span> <span class="o">.</span> <span class="o">-</span><span class="nl">XX:</span><span class="o">+</span><span class="n">PrintCompilation</span> <span class="n">Main</span>
+</code></pre></div>
+
+
+<p>на моей машине (2.8 GHz Intel Core i7, MacOS X 10.7) вывод был таким:</p>
+
+<div class="highlight"><pre><code class="java">     <span class="mi">57</span>    <span class="mi">1</span>             <span class="n">java</span><span class="o">.</span><span class="na">lang</span><span class="o">.</span><span class="na">String</span><span class="o">::</span><span class="n">hashCode</span> <span class="o">(</span><span class="mi">55</span> <span class="n">bytes</span><span class="o">)</span>
+     <span class="mi">62</span>     <span class="mi">100</span>     <span class="n">field</span> <span class="n">access</span><span class="o">=</span><span class="mf">3430.0</span> <span class="n">ns</span><span class="o">,</span> <span class="n">get</span><span class="o">/</span><span class="n">set</span><span class="o">=</span><span class="mf">3330.0</span> <span class="n">ns</span>
+    <span class="mi">156</span>   <span class="mi">1</span><span class="o">,</span><span class="mi">000</span>      <span class="n">field</span> <span class="n">access</span><span class="o">=</span><span class="mf">140.0</span> <span class="n">ns</span><span class="o">,</span> <span class="n">get</span><span class="o">/</span><span class="n">set</span><span class="o">=</span><span class="mf">568.9</span> <span class="n">ns</span>
+    <span class="mi">261</span>   <span class="mi">5</span><span class="o">,</span><span class="mi">000</span>      <span class="n">field</span> <span class="n">access</span><span class="o">=</span><span class="mf">67.3</span> <span class="n">ns</span><span class="o">,</span> <span class="n">get</span><span class="o">/</span><span class="n">set</span><span class="o">=</span><span class="mf">481.3</span> <span class="n">ns</span>
+    <span class="mi">284</span>    <span class="mi">2</span>             <span class="nl">ViaGetSet:</span><span class="o">:</span><span class="n">getOne</span> <span class="o">(</span><span class="mi">5</span> <span class="n">bytes</span><span class="o">)</span>
+    <span class="mi">364</span>   <span class="mi">9</span><span class="o">,</span><span class="mi">000</span>      <span class="n">field</span> <span class="n">access</span><span class="o">=</span><span class="mf">47.3</span> <span class="n">ns</span><span class="o">,</span> <span class="n">get</span><span class="o">/</span><span class="n">set</span><span class="o">=</span><span class="mf">201.5</span> <span class="n">ns</span>
+    <span class="mi">488</span>    <span class="mi">3</span>             <span class="nl">ViaGetSet:</span><span class="o">:</span><span class="n">setOne</span> <span class="o">(</span><span class="mi">6</span> <span class="n">bytes</span><span class="o">)</span>
+    <span class="mi">493</span>  <span class="mi">10</span><span class="o">,</span><span class="mi">000</span>      <span class="n">field</span> <span class="n">access</span><span class="o">=</span><span class="mf">109.0</span> <span class="n">ns</span><span class="o">,</span> <span class="n">get</span><span class="o">/</span><span class="n">set</span><span class="o">=</span><span class="mf">403.0</span> <span class="n">ns</span>
+    <span class="mi">591</span>    <span class="mi">4</span>             <span class="nl">DFACaller:</span><span class="o">:</span><span class="n">call</span> <span class="o">(</span><span class="mi">51</span> <span class="n">bytes</span><span class="o">)</span>
+    <span class="mi">591</span>    <span class="mi">5</span>             <span class="nl">GetSetCaller:</span><span class="o">:</span><span class="n">call</span> <span class="o">(</span><span class="mi">51</span> <span class="n">bytes</span><span class="o">)</span>
+    <span class="mi">569</span>  <span class="mi">11</span><span class="o">,</span><span class="mi">000</span>      <span class="n">field</span> <span class="n">access</span><span class="o">=</span><span class="mf">180.0</span> <span class="n">ns</span><span class="o">,</span> <span class="n">get</span><span class="o">/</span><span class="n">set</span><span class="o">=</span><span class="mf">346.0</span> <span class="n">ns</span>
+    <span class="mi">671</span>  <span class="mi">13</span><span class="o">,</span><span class="mi">000</span>      <span class="n">field</span> <span class="n">access</span><span class="o">=</span><span class="mf">30.0</span> <span class="n">ns</span><span class="o">,</span> <span class="n">get</span><span class="o">/</span><span class="n">set</span><span class="o">=</span><span class="mf">6.0</span> <span class="n">ns</span>
+    <span class="mi">772</span>  <span class="mi">20</span><span class="o">,</span><span class="mi">000</span>      <span class="n">field</span> <span class="n">access</span><span class="o">=</span><span class="mf">9.7</span> <span class="n">ns</span><span class="o">,</span> <span class="n">get</span><span class="o">/</span><span class="n">set</span><span class="o">=</span><span class="mf">7.1</span> <span class="n">ns</span>
+    <span class="mi">875</span> <span class="mi">100</span><span class="o">,</span><span class="mi">000</span>      <span class="n">field</span> <span class="n">access</span><span class="o">=</span><span class="mf">1.7</span> <span class="n">ns</span><span class="o">,</span> <span class="n">get</span><span class="o">/</span><span class="n">set</span><span class="o">=</span><span class="mf">1.7</span> <span class="n">ns</span>
+</code></pre></div>
+
+
+<p>Что все это значит? Числа в первом столбце показывают время в миллисекундах с момента старта программы. Во втором столбце отображается ID метода (для скомпилированных методов) или количество итераций, выполненых в тесте.</p>
+
+<p>Обратите внимание, что метод hashCode класса String в тесте непосредственно не использовался, но все же был скомпилирован, так как он использовался самой платформой.</p>
+
+<p>Во 2-й строке можно увидеть, что оба способа обращения к полю довольно медленные, так как при первом запуске необходимо было выполнить загрузку соответствующих классов. В следующей строке мы видим, что тест выполнился значительно быстрее хотя никакой компиляции еще не произошло.</p>
+
+<p>Также заметим следующее:</p>
+
+<ul>
+<li>В тестах на 1 000 и 5 000 итераций прямой доступ к полю быстрее чем через вызовы методов get/set, так как они еще не были встроены или как-то оптимизированы. Даже не смотря на это оба способа работают достаточно быстро.</li>
+<li>На 9 000 итераций, гетер был оптимизирован (он вызывается дважды за итерацию), что дает небольшое улучшение производительности.</li>
+<li>На 10 000 итерациях был оптимизирован сетер. Дополнительное время (затраченное на выполнение оптимизации) привело к тому, что общее время теста увеличилось (403 нс вместо 201.5 нс)</li>
+<li>И наконец методы <strong>call()</strong> классов <strong>DFACaller</strong> и <strong>GetSetCaller</strong> были оптимизированы:
+
+<ul>
+<li>гетер и сетер были не просто оптимизированы, но еще и встроены в <strong>GetSetCaller</strong>.</li>
+<li>на следующей итерации можно заметить, что время выполнения тестов все еще не оптимально.</li>
+</ul>
+</li>
+<li>После 13 000 итераций, производительность каждого метода практически сравнялась. Мы достигли производительности установившегося состояния.</li>
+</ul>
+
+
+<p>Важно отметить, что в установившемся состоянии выполнения доступ к полям напрямую или через методы get/set выполняются одинаково, так как методы были встроены в методы класса GetSetCaller. Таким образом код в классе GetSetCaller выполняет те же действия, что и код в классе DFACaller.</p>
+
+<p>JIT-компиляция выполняется в фоне именно тогда, когда определенная оптимизация становится возможной для выполнения (изменяясь от машины к машине и реже от запуска к запуску).</p>
+
+<h2>Заключение</h2>
+
+<p>В этой статье была рассмотрена только верхушка айсберга JIT-компиляции в Java HotSpot VM. В частности не были отражены важные аспекты написания хороших тестов и то как использовать статистику, чтобы гарантировать, что динамическая природа платформы не дурит нас.</p>
+
+<p>Тесты, использовавшиеся здесь довольно простые и вряд ли подойдут для реальных замеров. Во второй части статьи будет показано как поставить более реалистичные тесты и детально рассмотрен код, производимый JIT-компилятором.</p>
+
+<p>Это вольный перевод статьи <a href="http://www.oraclejavamagazine-digital.com/javamagazine/20120506?folio=48#pg49">Introduction to JIT Compilation in Java HotSpot VM</a> Бена Эванса и Питера Лоурея, опубликованной в майском номере журнала Java Magazine.</p>
+</div>
+  
+</div>
+
+
+<div class="related">
+  <h2>Похожие записи</h2>
+  <ul class="related-posts">
+    
+      
+      
+        
+      
+        
+      
+        
+      
+      
+    
+      
+      
+        
+      
+        
+      
+        
+      
+        
+      
+      
+    
+      
+      
+        
+      
+        
+      
+        
+      
+        
+      
+      
+    
+      
+      
+        
+      
+        
+      
+      
+    
+      
+      
+        
+          
+        
+      
+        
+          
+        
+      
+      
+        <li><h3><a href="/blog/2012/09/26/o-razmerah-v-java/">
+          О размерах в Java
+          <small>26 Sep 2012</small>
+        </a></h3></li>
+      
+    
+  </ul>
+</div>
+
+      </div>
+    </div>
+
+    <label for="sidebar-checkbox" class="sidebar-toggle"></label>
+
+  </body>
+</html>

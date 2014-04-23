@@ -1,0 +1,374 @@
+<!DOCTYPE html>
+<html xmlns="http://www.w3.org/1999/xhtml" xml:lang="en" lang="en-us">
+
+  <head>
+  <link href="http://gmpg.org/xfn/11" rel="profile">
+  <meta http-equiv="content-type" content="text/html; charset=utf-8">
+
+  <!-- Enable responsiveness on mobile devices-->
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1">
+  <meta name="keywords" content="java, jvm, hotspot, размер объекта, типы данных в java">
+
+  <title>
+    
+      О размерах в Java &middot; polovko.me
+    
+  </title>
+
+  <!-- CSS -->
+  <link rel="stylesheet" href="/public/css/poole.css">
+  <link rel="stylesheet" href="/public/css/syntax.css">
+  <link rel="stylesheet" href="/public/css/lanyon.css">
+  <link rel="stylesheet" href="http://fonts.googleapis.com/css?family=PT+Serif:400,400italic,700|PT+Sans:400">
+
+  <!-- Icons -->
+  <link rel="apple-touch-icon-precomposed" sizes="144x144" href="/public/apple-touch-icon-144-precomposed.png">
+  <link rel="shortcut icon" href="/public/favicon.png">
+
+  <!-- RSS -->
+  <link rel="alternate" type="application/rss+xml" title="RSS" href="/atom.xml">
+</head>
+
+
+  <body>
+
+    <!-- Target for toggling the sidebar `.sidebar-checkbox` is for regular
+     styles, `#sidebar-checkbox` for behavior. -->
+<input type="checkbox" class="sidebar-checkbox" id="sidebar-checkbox">
+
+<!-- Toggleable sidebar -->
+<div class="sidebar" id="sidebar">
+  <div class="sidebar-item">
+    <p>"И тут Остапа понесло..." &copy; Ильф и Петров
+</p>
+  </div>
+
+  <nav class="sidebar-nav">
+    <a class="sidebar-nav-item"
+       href="/">Главная</a>
+
+    
+
+    
+    
+      
+        
+      
+    
+      
+    
+      
+        
+      
+    
+      
+        
+      
+    
+
+    <a class="sidebar-nav-item" href="https://github.com/jamel">GitHub</a>
+    <a class="sidebar-nav-item" href="https://twitter.com/the_jamel">Twitter</a>
+    <a class="sidebar-nav-item" href="/atom.xml">RSS</a>
+  </nav>
+</div>
+
+
+    <!-- Wrap is the content to shift when toggling the sidebar. We wrap the
+         content to avoid any CSS collisions with our real content. -->
+    <div class="wrap">
+      <div class="masthead">
+        <div class="container">
+          <h3 class="masthead-title">
+            <a href="/" title="Home">polovko.me</a>
+            <small>Записки на полях</small>
+          </h3>
+        </div>
+      </div>
+
+      <div class="container content">
+        <div class="post">
+  
+    <h1 class="post-title">О размерах в Java</h1>
+    <span class="post-date">26 Sep 2012</span>
+  
+
+  
+    <div class="post-content"><p>Задался недавно вопросом: "Как правильно оценить размер выделяемой памяти под объекты в Java?". На хабре есть несколько статей <a href="http://habrahabr.ru/post/134102/">[1]</a>, <a href="http://habrahabr.ru/post/134910/">[2]</a> посвященных этому вопросу. Но мне не совсем понравился подход, использованный авторами. Поэтому решил заглянуть внутрь OpenJDK Hotspot VM (далее по тексту Hotspot) и попытаться понять как все устроено на самом деле.</p>
+
+<h2>Типы данных в Java</h2>
+
+<ul>
+<li>Примитивы. (byte, short, char, int, float, long, double, boolean).</li>
+<li>Объекты. Размер объекта зависит от конкретной реализации VM и архитектуры процессора. Поэтому дать однозначный ответ не получится. Все же хочется понять (на примере конкретной VM) какой размер памяти выделяется под java-объект.</li>
+<li>Массивы. Одномерные линейные структуры, которые могут содержать все перечисленные типы (включая другие  массивы). Массивы также являются объектами, но со специфичной структурой. <!-- more --></li>
+</ul>
+
+
+<h3>Примитивы</h3>
+
+<p>С размером примитивов все понятно - их размер определен в спецификации языка (<a href="http://docs.oracle.com/javase/specs/jls/se7/html/jls-4.html#jls-4.2">JLS 4.2</a>) и спецификации jvm (<a href="http://docs.oracle.com/javase/specs/jvms/se7/html/jvms-2.html#jvms-2.3">JVMS 2.3</a>). Интересно заметить, что для типа boolean jvm использует int, а не byte как могло бы показаться (<a href="http://docs.oracle.com/javase/specs/jvms/se7/html/jvms-2.html#jvms-2.3.4">JMS 2.3.4</a>). Также интересно, что при создании массива boolean[] под каждый элемент массива будет выделен 1 байт, а не 4.</p>
+
+<table class="table table-bordered table-center">
+<thead>
+    <tr>
+        <th>тип</th>
+        <th>размер (байт)</th>
+        <th>размер в массиве (байт)</th>
+        <th>допустимые значения</th>
+    </tr>
+</thead>
+<tbody>
+    <tr><td>byte</td><td>1</td><td>1</td><td>-128 .. 127</td></tr>
+    <tr><td>short</td><td>2</td><td>2</td><td>-32768 .. 32767</td></tr>
+    <tr><td>chart</td><td>2</td><td>2</td><td>'\u0000' .. '\uffff'</td></tr>
+    <tr><td>int</td><td>4</td><td>4</td><td>-2147483648 .. 2147483647</td></tr>
+    <tr><td>float</td><td>4</td><td>4</td><td>-3.4028235e+38f .. 3.4028235e+38f</td></tr>
+    <tr><td>long</td><td>8</td><td>8</td><td>-9223372036854775808 .. 9223372036854775807</td></tr>
+    <tr><td>double</td><td>8</td><td>8</td><td>-1.7976931348623157e+308 .. 1.7976931348623157e+308</td></tr>
+    <tr><td>boolean</td><td>4</td><td>1</td><td>false, true</td></tr>
+</tbody>
+</table>
+
+
+<h3>Объекты</h3>
+
+<p>Для описания экземпляров массивов Hotspot использует класс <a href="http://hg.openjdk.java.net/jdk6/jdk6/hotspot/file/tip/src/share/vm/oops/arrayOop.hpp">arrayOopDesc</a>, для описания остальных Java-классов используется класс <a href="http://hg.openjdk.java.net/jdk6/jdk6/hotspot/file/tip/src/share/vm/oops/instanceOop.hpp">instanceOopDesc</a>. Оба эти класса наследуются от <a href="http://hg.openjdk.java.net/jdk6/jdk6/hotspot/file/tip/src/share/vm/oops/oop.hpp">oopDesc</a> и оба содержат методы для вычисления размера заголовка. Так например a instabceOopDesc вычисляет размер заголовка (в машинных словах) следующим образом:</p>
+
+<div class="highlight"><pre><code class="cpp"><span class="k">static</span> <span class="kt">int</span> <span class="nf">header_size</span><span class="p">()</span> <span class="p">{</span> <span class="k">return</span> <span class="k">sizeof</span><span class="p">(</span><span class="n">instanceOopDesc</span><span class="p">)</span><span class="o">/</span><span class="n">HeapWordSize</span><span class="p">;</span> <span class="p">}</span>
+</code></pre></div>
+
+
+<p> где HeapWordSize определяется как размер указателя. В зависимости от архитектуры CPU 4 и 8 байт для x86 и x86_64 (в Oracle именуют x64) соответственно.
+ Чтобы понять размер instanceOopDesc надо заглянуть в oopDesc, так как в самом instanceOopDesc никаких полей не объявлено. Вот что мы там увидим:</p>
+
+<div class="highlight"><pre><code class="cpp"><span class="k">class</span> <span class="nc">oopDesc</span> <span class="p">{</span>
+   <span class="c1">// ...</span>
+    <span class="k">volatile</span> <span class="n">markOop</span>  <span class="n">_mark</span><span class="p">;</span>
+    <span class="k">union</span> <span class="n">_metadata</span> <span class="p">{</span>
+        <span class="n">wideKlassOop</span>    <span class="n">_klass</span><span class="p">;</span>
+        <span class="n">narrowOop</span>       <span class="n">_compressed_klass</span><span class="p">;</span>
+    <span class="p">}</span> <span class="n">_metadata</span><span class="p">;</span>
+    <span class="c1">// ...</span>
+<span class="p">};</span>
+</code></pre></div>
+
+
+<p>В файле <a href="http://hg.openjdk.java.net/jdk6/jdk6/hotspot/file/tip/src/share/vm/oops/oopsHierarchy.hpp">oopsHierarchy.hpp</a> объявлены необходимые типы данных для работы с иерархией объектов oop (ordinary object pointer). Посмотрим как объявлены те типы, которые используются в oopDesc:</p>
+
+<div class="highlight"><pre><code class="cpp"><span class="c1">// ...</span>
+<span class="k">typedef</span> <span class="n">juint</span> <span class="n">narrowOop</span><span class="p">;</span> <span class="c1">// Offset instead of address for an oop within a java object</span>
+<span class="k">typedef</span> <span class="k">class</span> <span class="nc">klassOopDesc</span><span class="o">*</span> <span class="n">wideKlassOop</span><span class="p">;</span> <span class="c1">// to keep SA happy and unhandled</span>
+                                          <span class="c1">// oop detector happy.</span>
+<span class="c1">// ...</span>
+<span class="k">typedef</span> <span class="k">class</span> <span class="nc">markOopDesc</span><span class="o">*</span>  <span class="n">markOop</span><span class="p">;</span>
+<span class="c1">// ...</span>
+</code></pre></div>
+
+
+<p>То есть это два указателя (читай два машинных слова) для конкретной архитектуры - так называемое маркировочное слово (mark word) и адрес (который может быть представлен указателем или смещением) на метаданные класса.
+Идея этого union metadata состоит в том, что при включенной опции <code>-XX:+UseCompressedOops</code> будет использоваться 32х битное смещение (<em>_compressed_klass</em>) а не 64х битный адрес (<em>_klass</em>).
+Получается размер заголовка java-объекта 8 байт для x86 и 16 байт для x86_64 в не зависимости от параметра UseCompressedOops:</p>
+
+<table class="table table-bordered table-center">
+<thead>
+    <tr>
+        <th>Архитектура</th>
+        <th>-XX:+UseCompressedOops</th>
+        <th>-XX:-UseCompressedOops</th>
+    </tr>
+</thead>
+<tbody>
+    <tr><td>x86</td><td colspan="2">8 байт (<code>4 + 4</code>)</td></tr>
+    <tr><td>x86_64</td><td colspan="2">16 байт (<code>8 + 8</code>)</td></tr>
+</tbody>
+</table>
+
+
+<h3>Массивы</h3>
+
+<p>В arrayOopDesc размер заголовка вычисляется следующим образом:</p>
+
+<div class="highlight"><pre><code class="cpp"><span class="k">static</span> <span class="kt">int</span> <span class="nf">header_size_in_bytes</span><span class="p">()</span> <span class="p">{</span>
+    <span class="kt">size_t</span> <span class="n">hs</span> <span class="o">=</span> <span class="n">align_size_up</span><span class="p">(</span><span class="n">length_offset_in_bytes</span><span class="p">()</span> <span class="o">+</span> <span class="k">sizeof</span><span class="p">(</span><span class="kt">int</span><span class="p">),</span> <span class="n">HeapWordSize</span><span class="p">);</span>
+    <span class="c1">// ...</span>
+    <span class="k">return</span> <span class="p">(</span><span class="kt">int</span><span class="p">)</span><span class="n">hs</span><span class="p">;</span>
+<span class="p">}</span>
+</code></pre></div>
+
+
+<p>где</p>
+
+<ul>
+<li><em>align_size_up</em> - инлайнер для выравнивания первого аргумента по второму. Например <code>align_size_up(12, 8) = 16</code>.</li>
+<li><em>length_offset_in_bytes</em> - возвращает размер заголовка в байтах в зависимости от опции <code>-XX:+UseCompressedOops</code>. Если она включена, то размер равен <code>sizeof(markOop) + sizeof(narrowOop)</code> = 8 (4 + 4) байт для x86 и 12 (8 + 4) байт для x86_64. При выключенной опции размер равен <code>sizeof(arrayOopDesc)</code> = 8 байт для x86 и 16 байт для x86_64.</li>
+<li>заметьте, что к вычисленному размеру прибавляется <code>sizeof(int)</code>. Это делается для того чтобы "зарезервировать место" под поле <em>length</em> массива, так как оно явно не определено в классе. При включенной ссылочной компрессии (актуально только для 64x битной архитектуры) это поле займет вторую половину поля <em>_klass</em> (см. класс oopDesc)</li>
+</ul>
+
+
+<p>Посчитаем, что у нас получается. Размер заголовка массива после выравнивания:</p>
+
+<table class="table table-bordered table-center">
+<thead>
+    <tr>
+        <th>Архитектура</th>
+        <th>-XX:+UseCompressedOops</th>
+        <th>-XX:-UseCompressedOops</th>
+    </tr>
+</thead>
+<tbody>
+    <tr>
+        <td>x86</td>
+        <td colspan="2">12 байт (<code>4 + 4 + 4 align 4</code>)</td>
+    </tr>
+    <tr>
+        <td>x86_64</td>
+        <td>16 байт (<code>8 + 4 + 4 align 8</code>)</td>
+        <td>24 байта (<code>8 + 8 + 4 align 8</code>)</td>
+    </tr>
+</tbody>
+</table>
+
+
+<h2>Выравнивание</h2>
+
+<p>Для предотвращения ситуаций ложного совместного использования строки кэша (cache-line <a href="http://en.wikipedia.org/wiki/False_sharing">false sharing</a>) размер объекта в Hotspot выравнивается по 8 байтовой границе. То есть если объект будет занимать даже 1 байт под него выделится 8 байт. Размер границы выравнивания выбирается таким образом, чтобы строка кэша была кратна этой границе, а также эта граница должна быть степенью двойки, а также кратна машинному слову. Так как у большинства современных процессоров размер строки кэша составляет 64 байта, а размер машинного слова - 4/8 байт, то размер границы был выбран равным 8 байт. В файле <a href="http://hg.openjdk.java.net/jdk6/jdk6/hotspot/file/tip/src/share/vm/utilities/globalDefinitions.hpp">globalDefinitions.hpp</a> есть соответствующие определения (строки 372 - 390). Здесь не буду приводить, интересующиеся могут сходить и посмотреть.</p>
+
+<p>Начиная с версии jdk6u21 размер выравнивания стал настраиваемым параметром. Его можно задать при помощи параметра <code>-XX:ObjectAlignmentInBytes=n</code>. Допустимы значения 8 и 16.</p>
+
+<h2>И что же получается?</h2>
+
+<p>А получается следующая картина (для x86_64):</p>
+
+<div class="highlight"><pre><code class="java"><span class="kd">public</span> <span class="kd">class</span> <span class="nc">Point</span> <span class="o">{</span>                         <span class="c1">// 0x00 +------------------+</span>
+    <span class="kd">private</span> <span class="kt">int</span> <span class="n">x</span><span class="o">;</span>                           <span class="c1">//      | mark word        |  8 bytes</span>
+    <span class="kd">private</span> <span class="kt">int</span> <span class="n">y</span><span class="o">;</span>                           <span class="c1">// 0x08 +------------------+</span>
+    <span class="kd">private</span> <span class="kt">byte</span> <span class="n">color</span><span class="o">;</span>                      <span class="c1">//      | klass oop        |  8 bytes</span>
+                                             <span class="c1">// 0x10 +------------------+</span>
+    <span class="kd">public</span> <span class="nf">Point</span><span class="o">(</span><span class="kt">int</span> <span class="n">x</span><span class="o">,</span> <span class="kt">int</span> <span class="n">y</span><span class="o">,</span> <span class="kt">byte</span> <span class="n">color</span><span class="o">)</span> <span class="o">{</span> <span class="c1">//      | x                |  4 bytes</span>
+        <span class="k">this</span><span class="o">.</span><span class="na">x</span> <span class="o">=</span> <span class="n">x</span><span class="o">;</span>                          <span class="c1">//      | y                |  4 bytes</span>
+        <span class="k">this</span><span class="o">.</span><span class="na">y</span> <span class="o">=</span> <span class="n">y</span><span class="o">;</span>                          <span class="c1">//      | color            |  1 byte</span>
+        <span class="k">this</span><span class="o">.</span><span class="na">color</span> <span class="o">=</span> <span class="n">color</span><span class="o">;</span>                  <span class="c1">// 0x19 +------------------+</span>
+    <span class="o">}</span>                                        <span class="c1">//      | padding          |  7 bytes</span>
+                                             <span class="c1">//      |                  |</span>
+    <span class="c1">// ...                                   // 0x20 +------------------+</span>
+<span class="o">}</span>                                            <span class="c1">//                    total: 32 bytes</span>
+</code></pre></div>
+
+
+<p>Для массива char[] из 11 элементов (для x86_64):</p>
+
+<div class="highlight"><pre><code class="java"><span class="kt">char</span><span class="o">[]</span> <span class="n">str</span> <span class="o">=</span> <span class="k">new</span> <span class="kt">char</span><span class="o">[]</span> <span class="o">{</span>                    <span class="c1">// 0x00 +------------------+</span>
+    <span class="sc">&#39;H&#39;</span><span class="o">,</span> <span class="sc">&#39;e&#39;</span><span class="o">,</span> <span class="sc">&#39;l&#39;</span><span class="o">,</span> <span class="sc">&#39;l&#39;</span><span class="o">,</span> <span class="sc">&#39;o&#39;</span><span class="o">,</span> <span class="sc">&#39; &#39;</span><span class="o">,</span>            <span class="c1">//      | mark word        |  8 bytes</span>
+    <span class="sc">&#39;W&#39;</span><span class="o">,</span> <span class="sc">&#39;o&#39;</span><span class="o">,</span> <span class="sc">&#39;r&#39;</span><span class="o">,</span> <span class="sc">&#39;l&#39;</span><span class="o">,</span> <span class="sc">&#39;d&#39;</span> <span class="o">};</span>               <span class="c1">// 0x08 +------------------+</span>
+                                             <span class="c1">//      | klass oop        |  4 bytes</span>
+                                             <span class="c1">// 0x0c +------------------+</span>
+                                             <span class="c1">//      | length           |  4 bytes</span>
+                                             <span class="c1">// 0x10 +------------------+</span>
+                                             <span class="c1">//      | &#39;H&#39;              | 22 bytes</span>
+                                             <span class="c1">//      | &#39;e&#39;              |</span>
+                                             <span class="c1">//      | &#39;l&#39;              |</span>
+                                             <span class="c1">//      | &#39;l&#39;              |</span>
+                                             <span class="c1">//      | &#39;o&#39;              |</span>
+                                             <span class="c1">//      | &#39; &#39;              |</span>
+                                             <span class="c1">//      | &#39;W&#39;              |</span>
+                                             <span class="c1">//      | &#39;o&#39;              |</span>
+                                             <span class="c1">//      | &#39;r&#39;              |</span>
+                                             <span class="c1">//      | &#39;l&#39;              |</span>
+                                             <span class="c1">//      | &#39;d&#39;              |</span>
+                                             <span class="c1">// 0x26 +------------------+</span>
+                                             <span class="c1">//      | padding          |  2 bytes</span>
+                                             <span class="c1">// 0x28 +------------------+</span>
+                                             <span class="c1">//                    total: 40 bytes</span>
+</code></pre></div>
+
+
+<h2>Что почитать по теме</h2>
+
+<ul>
+<li><a href="http://www.codeinstructions.com/2008/12/java-objects-memory-structure.html">Java Objects Memory Structure</a></li>
+<li><a href="https://wikis.oracle.com/display/HotSpotInternals/Home">HotSpotInternals</a></li>
+<li><a href="http://openjdk.java.net/groups/hotspot/docs/FOSDEM-2007-HotSpot.pdf">FOSDEM-2007-HotSpot.pdf</a></li>
+<li><a href="http://www.cs.princeton.edu/picasso/mats/HotspotOverview.pdf">HotspotOverview.pdf</a></li>
+<li><a href="http://ssw.jku.at/Research/Papers/Wimmer08PhD/Wimmer08PhD.pdf">Wimmer08PhD.pdf</a></li>
+</ul>
+
+</div>
+  
+</div>
+
+
+<div class="related">
+  <h2>Похожие записи</h2>
+  <ul class="related-posts">
+    
+      
+      
+        
+      
+        
+      
+        
+      
+      
+    
+      
+      
+        
+      
+        
+          
+        
+      
+        
+          
+        
+      
+      
+        <li><h3><a href="/blog/2012/10/04/vvedenie-v-jit-kompilyaciyu/">
+          Введение в JIT компиляцию
+          <small>04 Oct 2012</small>
+        </a></h3></li>
+      
+    
+      
+      
+        
+      
+        
+      
+        
+      
+        
+      
+      
+    
+      
+      
+        
+      
+        
+      
+        
+      
+        
+      
+      
+    
+      
+      
+        
+      
+        
+      
+      
+    
+  </ul>
+</div>
+
+      </div>
+    </div>
+
+    <label for="sidebar-checkbox" class="sidebar-toggle"></label>
+
+  </body>
+</html>

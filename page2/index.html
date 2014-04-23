@@ -1,0 +1,142 @@
+<!DOCTYPE html>
+<html xmlns="http://www.w3.org/1999/xhtml" xml:lang="en" lang="en-us">
+
+  <head>
+  <link href="http://gmpg.org/xfn/11" rel="profile">
+  <meta http-equiv="content-type" content="text/html; charset=utf-8">
+
+  <!-- Enable responsiveness on mobile devices-->
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1">
+  
+
+  <title>
+    
+      polovko.me &middot; Записки на полях
+    
+  </title>
+
+  <!-- CSS -->
+  <link rel="stylesheet" href="/public/css/poole.css">
+  <link rel="stylesheet" href="/public/css/syntax.css">
+  <link rel="stylesheet" href="/public/css/lanyon.css">
+  <link rel="stylesheet" href="http://fonts.googleapis.com/css?family=PT+Serif:400,400italic,700|PT+Sans:400">
+
+  <!-- Icons -->
+  <link rel="apple-touch-icon-precomposed" sizes="144x144" href="/public/apple-touch-icon-144-precomposed.png">
+  <link rel="shortcut icon" href="/public/favicon.png">
+
+  <!-- RSS -->
+  <link rel="alternate" type="application/rss+xml" title="RSS" href="/atom.xml">
+</head>
+
+
+  <body>
+
+    <!-- Target for toggling the sidebar `.sidebar-checkbox` is for regular
+     styles, `#sidebar-checkbox` for behavior. -->
+<input type="checkbox" class="sidebar-checkbox" id="sidebar-checkbox">
+
+<!-- Toggleable sidebar -->
+<div class="sidebar" id="sidebar">
+  <div class="sidebar-item">
+    <p>"И тут Остапа понесло..." &copy; Ильф и Петров
+</p>
+  </div>
+
+  <nav class="sidebar-nav">
+    <a class="sidebar-nav-item active"
+       href="/">Главная</a>
+
+    
+
+    
+    
+      
+        
+      
+    
+      
+    
+      
+        
+      
+    
+      
+        
+      
+    
+
+    <a class="sidebar-nav-item" href="https://github.com/jamel">GitHub</a>
+    <a class="sidebar-nav-item" href="https://twitter.com/the_jamel">Twitter</a>
+    <a class="sidebar-nav-item" href="/atom.xml">RSS</a>
+  </nav>
+</div>
+
+
+    <!-- Wrap is the content to shift when toggling the sidebar. We wrap the
+         content to avoid any CSS collisions with our real content. -->
+    <div class="wrap">
+      <div class="masthead">
+        <div class="container">
+          <h3 class="masthead-title">
+            <a href="/" title="Home">polovko.me</a>
+            <small>Записки на полях</small>
+          </h3>
+        </div>
+      </div>
+
+      <div class="container content">
+        
+<div class="posts">
+  
+    
+    <div class="post">
+  
+    <h1 class="post-title">
+      <a href="/blog/2012/09/26/o-razmerah-v-java/">
+        О размерах в Java
+      </a>
+    </h1>
+    <span class="post-date">26 Sep 2012</span>
+  
+
+  
+    <div class="entry-content"><p>Задался недавно вопросом: "Как правильно оценить размер выделяемой памяти под объекты в Java?". На хабре есть несколько статей <a href="http://habrahabr.ru/post/134102/">[1]</a>, <a href="http://habrahabr.ru/post/134910/">[2]</a> посвященных этому вопросу. Но мне не совсем понравился подход, использованный авторами. Поэтому решил заглянуть внутрь OpenJDK Hotspot VM (далее по тексту Hotspot) и попытаться понять как все устроено на самом деле.</p>
+
+<h2>Типы данных в Java</h2>
+
+<ul>
+<li>Примитивы. (byte, short, char, int, float, long, double, boolean).</li>
+<li>Объекты. Размер объекта зависит от конкретной реализации VM и архитектуры процессора. Поэтому дать однозначный ответ не получится. Все же хочется понять (на примере конкретной VM) какой размер памяти выделяется под java-объект.</li>
+<li>Массивы. Одномерные линейные структуры, которые могут содержать все перечисленные типы (включая другие  массивы). Массивы также являются объектами, но со специфичной структурой. </div>
+    
+    
+      <div class="read-more">
+        <a href="/blog/2012/09/26/o-razmerah-v-java/">Читать дальше &rarr;</a>
+      </div>
+    
+  
+</div>
+
+    <hr class="soften">
+  
+</div>
+
+<div class="pagination">
+  
+    <span class="pagination-item older">&larr; Туда</span>
+  
+  
+    
+      <a class="pagination-item newer" href="/">Сюда &rarr;</a>
+    
+  
+</div>
+
+      </div>
+    </div>
+
+    <label for="sidebar-checkbox" class="sidebar-toggle"></label>
+
+  </body>
+</html>
