@@ -3,12 +3,11 @@ markdown: rdiscount
 pygments: true
 
 # Permalinks
-# permalink: pretty
 permalink: /blog/:year/:month/:day/:title/
 
 # Setup
 title: polovko.me
-tagline: 'Записки на полях'
+tagline: 'Заметки на полях'
 description: >
     "И тут Остапа понесло..." &copy; Ильф и Петров
 url: http://www.polovko.me
@@ -23,4 +22,3 @@ paginate: 5
 github: https://github.com/jamel
 twitter: https://twitter.com/the_jamel
 readmore_link: 'Читать дальше &rarr;'
-
